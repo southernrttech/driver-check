@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1B2530">
+<title>Driver Check - Admin</title>
+<link rel="icon" type="image/png" href="icon-192.png">
+</head>
+<body>
+<style>
+  :root {
+    --paper: #F4F6F7;
+    --card: #FFFFFF;
+    --ink: #1B2530;
+    --ink-soft: #5A6875;
+    --line: #DDE3E8;
+    --accent: #C8641B;
+    --accent-ink: #FFFFFF;
+    --ok: #217A4B;
+    --ok-soft: #E2F2E9;
+    --issue: #B93A32;
+    --issue-soft: #F9E7E5;
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #151B21; --card: #1F2830; --ink: #EDF1F4; --ink-soft: #9AA8B4;
+      --line: #33404B; --accent: #E08935; --accent-ink: #1B1206;
+      --ok: #4CBF85; --ok-soft: #1D3A2C; --issue: #E4756C; --issue-soft: #46231F;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--paper); color: var(--ink);
+    font-family: -apple-system, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px; line-height: 1.45;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 16px 16px 64px; }
+  header.app { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 8px 2px 14px; }
+  header.app h1 { font-size: 21px; margin: 0; }
+  header.app a { color: var(--accent); font-size: 14px; font-weight: 600; text-decoration: none; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; }
+  .card h2 { font-size: 13px; font-weight: 700; margin: 0 0 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); }
+  textarea {
+    width: 100%; min-height: 110px;
+    font: inherit; font-size: 14px; color: var(--ink);
+    background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 12px;
+  }
+  .btn {
+    font: inherit; font-size: 15px; font-weight: 700;
+    padding: 11px 18px; margin-top: 10px;
+    border-radius: 10px; border: none; cursor: pointer;
+    background: var(--accent); color: var(--accent-ink);
+  }
+  .btn.secondary { background: transparent; color: var(--ink); border: 1.5px solid var(--line); font-weight: 600; }
+  .hintline { font-size: 13px; color: var(--ink-soft); margin: 6px 0 0; }
+  .board { margin: 0; padding: 0; list-style: none; }
+  .board li {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 15px;
+  }
+  .board li:last-child { border-bottom: none; }
+  .board .detail { color: var(--ink-soft); font-size: 13px; }
+  .pill { font-size: 12px; font-weight: 700; white-space: nowrap; padding: 3px 10px; border-radius: 99px; }
+  .pill.ok { background: var(--ok-soft); color: var(--ok); }
+  .pill.bad { background: var(--issue-soft); color: var(--issue); }
+  .alert { background: var(--issue-soft); color: var(--issue); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; font-size: 14px; font-weight: 600; }
+  .empty { color: var(--ink-soft); font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 8px 7px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--ink-soft); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .tablebox { overflow-x: auto; }
+  .danger { color: var(--issue); }
+  .row-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+    background: var(--ink); color: var(--paper);
+    padding: 10px 18px; border-radius: 99px; font-size: 15px; font-weight: 600;
+    opacity: 0; pointer-events: none; transition: opacity 0.25s; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
+</style>
+
+<div class="wrap">
+  <header class="app">
+    <h1>Driver Check - Admin</h1>
+    <a href="./">Driver app &rarr;</a>
+  </header>
+
+  <div class="card">
+    <h2>Paste emailed reports here</h2>
+    <textarea id="pasteBox" placeholder="Copy one or more reports out of your emails and paste them here, then press Add."></textarea>
+    <div class="row-actions">
+      <button class="btn" id="addBtn">Add reports</button>
+      <span class="hintline" id="storeCount"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Today's board</h2>
+    <ul class="board" id="todayBoard"></ul>
+    <p class="empty" id="todayEmpty">Add your fleet below to see who has checked in today.</p>
+  </div>
+
+  <div class="card">
+    <h2>Alerts - kms with no check logged</h2>
+    <div id="alertsBox"><p class="empty">Nothing flagged yet.</p></div>
+  </div>
+
+  <div class="card">
+    <h2>Recent issues</h2>
+    <div id="issuesBox"><p class="empty">No issues recorded.</p></div>
+  </div>
+
+  <div class="card">
+    <h2>Your fleet (one per line - trucks, trailers, dollys)</h2>
+    <textarea id="fleetBox" placeholder="TRUCK 1&#10;TRUCK 2&#10;TRL 1&#10;TRL 2&#10;DOLLY 1"></textarea>
+    <button class="btn secondary" id="fleetBtn">Save fleet</button>
+  </div>
+
+  <div class="card">
+    <h2>All records</h2>
+    <div class="tablebox">
+      <table>
+        <thead><tr><th>Date</th><th>Driver</th><th>Vehicle</th><th>Trailers / dolly</th><th>Odo (km)</th><th>Result</th></tr></thead>
+        <tbody id="recTable"></tbody>
+      </table>
+    </div>
+    <button class="btn secondary" id="clearBtn">Delete all records</button>
+    <p class="hintline">Everything on this page is saved in this browser only, on this computer.</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const store = {
+    get(k, fb) { try { return JSON.parse(localStorage.getItem(k)) ?? fb; } catch { return fb; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  };
+
+  const MONTHS = { january:0, february:1, march:2, april:3, may:4, june:5, july:6, august:7, september:8, october:9, november:10, december:11 };
+
+  let records = store.get("adminRecords", []);
+  let fleet = store.get("adminFleet", []);
+
+  function toast(msg) {
+    const t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove("show"), 2400);
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  // Parse the date line our app writes, e.g. "Wednesday 5 August, 16:11" or "... 4:11 pm"
+  function parseWhen(dateLine, addedAt) {
+    const m = dateLine.match(/(\d{1,2})\s+([A-Za-z]+)/);
+    const t = dateLine.match(/(\d{1,2})[:.](\d{2})\s*(am|pm|AM|PM)?/);
+    const base = new Date(addedAt);
+    let d = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+    if (m && MONTHS[m[2].toLowerCase()] !== undefined) {
+      d = new Date(base.getFullYear(), MONTHS[m[2].toLowerCase()], parseInt(m[1], 10));
+      if (d.getTime() - base.getTime() > 40 * 86400000) d.setFullYear(d.getFullYear() - 1);
+    }
+    if (t) {
+      let h = parseInt(t[1], 10);
+      const ap = (t[3] || "").toLowerCase();
+      if (ap === "pm" && h < 12) h += 12;
+      if (ap === "am" && h === 12) h = 0;
+      d.setHours(h, parseInt(t[2], 10));
+    }
+    return d.getTime();
+  }
+
+  function grab(block, label) {
+    const m = block.match(new RegExp("^" + label + ":\\s*(.+)$", "m"));
+    return m ? m[1].trim() : "";
+  }
+
+  function parseReports(text, addedAt) {
+    const found = [];
+    const blocks = text.split(/DAILY VEHICLE CHECK/).slice(1);
+    for (const block of blocks) {
+      const dateLine = grab(block, "Date");
+      const vehicle = grab(block, "Vehicle");
+      if (!dateLine || !vehicle) continue;
+      const odoRaw = grab(block, "Odometer").replace(/[^0-9]/g, "");
+      const issues = [];
+      const re = /^\[ISSUE\]\s*(.+)$/gm;
+      let mm;
+      while ((mm = re.exec(block))) issues.push(mm[1].trim());
+      found.push({
+        when: parseWhen(dateLine, addedAt),
+        dateLine,
+        driver: grab(block, "Driver"),
+        vehicle,
+        trailer1: grab(block, "Trailer 1") || grab(block, "Trailer"),
+        trailer2: grab(block, "Trailer 2"),
+        dolly: grab(block, "Dolly"),
+        odo: odoRaw ? parseInt(odoRaw, 10) : null,
+        issues,
+        signed: /Signed on screen/.test(block),
+      });
+    }
+    return found;
+  }
+
+  $("addBtn").addEventListener("click", () => {
+    const text = $("pasteBox").value;
+    if (!text.trim()) { toast("Paste a report first"); return; }
+    const found = parseReports(text, Date.now());
+    if (!found.length) { toast("No reports found in that text"); return; }
+    let added = 0;
+    for (const r of found) {
+      const key = r.vehicle + "|" + r.dateLine;
+      if (!records.some((x) => x.vehicle + "|" + x.dateLine === key)) { records.push(r); added++; }
+    }
+    records.sort((a, b) => a.when - b.when);
+    store.set("adminRecords", records);
+    $("pasteBox").value = "";
+    toast(added + " report" + (added === 1 ? "" : "s") + " added" + (found.length > added ? " (" + (found.length - added) + " duplicates skipped)" : ""));
+    renderAll();
+  });
+
+  $("fleetBtn").addEventListener("click", () => {
+    fleet = $("fleetBox").value.split("\n").map((s) => s.trim()).filter(Boolean);
+    store.set("adminFleet", fleet);
+    toast("Fleet saved - " + fleet.length + " units");
+    renderAll();
+  });
+
+  $("clearBtn").addEventListener("click", () => {
+    if (!confirm("Delete all pasted records? This cannot be undone.")) return;
+    records = [];
+    store.set("adminRecords", records);
+    renderAll();
+  });
+
+  function unitsOf(r) {
+    return [r.vehicle, r.trailer1, r.trailer2, r.dolly].filter(Boolean);
+  }
+  function sameDay(ts, ref) {
+    const a = new Date(ts), b = new Date(ref);
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  }
+
+  function renderAll() {
+    $("fleetBox").value = fleet.join("\n");
+    $("storeCount").textContent = records.length ? records.length + " reports stored" : "";
+
+    // Today's board
+    const board = $("todayBoard");
+    board.innerHTML = "";
+    $("todayEmpty").style.display = fleet.length ? "none" : "";
+    const now = Date.now();
+    fleet.forEach((unit) => {
+      const u = unit.toLowerCase();
+      const hit = [...records].reverse().find((r) => sameDay(r.when, now) && unitsOf(r).some((x) => x.toLowerCase() === u));
+      const li = document.createElement("li");
+      li.innerHTML =
+        "<span>" + esc(unit) +
+        (hit ? '<div class="detail">' + esc(hit.driver) + (hit.odo != null ? " &middot; " + hit.odo.toLocaleString() + " km" : "") + "</div>" : "") +
+        "</span>" +
+        (hit
+          ? '<span class="pill ok">Checked' + (hit.issues.length ? " - " + hit.issues.length + " issue" + (hit.issues.length > 1 ? "s" : "") : "") + "</span>"
+          : '<span class="pill bad">NOT CHECKED</span>');
+      board.appendChild(li);
+    });
+
+    // Alerts: odometer analysis per vehicle
+    const byVehicle = {};
+    records.forEach((r) => {
+      if (r.odo == null) return;
+      const k = r.vehicle.toLowerCase();
+      (byVehicle[k] = byVehicle[k] || []).push(r);
+    });
+    const alerts = [];
+    Object.values(byVehicle).forEach((list) => {
+      list.sort((a, b) => a.when - b.when);
+      for (let i = 1; i < list.length; i++) {
+        const prev = list[i - 1], cur = list[i];
+        const dayGap = Math.round((cur.when - prev.when) / 86400000);
+        const kmGap = cur.odo - prev.odo;
+        if (kmGap < 0) {
+          alerts.push(esc(cur.vehicle) + ": odometer went BACKWARDS (" + prev.odo.toLocaleString() + " to " + cur.odo.toLocaleString() + " km) - typo or wrong reading?");
+        } else if (dayGap > 1 && kmGap > 0) {
+          alerts.push(esc(cur.vehicle) + ": " + kmGap.toLocaleString() + " km driven across " + dayGap + " days with no check logged (" + esc(prev.dateLine) + " to " + esc(cur.dateLine) + ")");
+        }
+      }
+    });
+    $("alertsBox").innerHTML = alerts.length
+      ? alerts.map((a) => '<div class="alert">' + a + "</div>").join("")
+      : '<p class="empty">Nothing flagged yet.</p>';
+
+    // Recent issues
+    const iss = [];
+    [...records].reverse().forEach((r) => {
+      r.issues.forEach((line) => iss.push({ r, line }));
+    });
+    $("issuesBox").innerHTML = iss.length
+      ? '<ul class="board">' + iss.slice(0, 15).map(({ r, line }) =>
+          "<li><span>" + esc(line) + '<div class="detail">' + esc(r.vehicle) + " &middot; " + esc(r.driver) + " &middot; " + esc(r.dateLine) + "</div></span>" +
+          '<span class="pill bad">Issue</span></li>').join("") + "</ul>"
+      : '<p class="empty">No issues recorded.</p>';
+
+    // Records table
+    $("recTable").innerHTML = [...records].reverse().slice(0, 100).map((r) => {
+      const extras = [r.trailer1, r.trailer2, r.dolly].filter(Boolean).join(", ");
+      const res = r.issues.length ? '<span class="danger">' + r.issues.length + " issue" + (r.issues.length > 1 ? "s" : "") + "</span>" : "All OK";
+      return "<tr><td>" + esc(r.dateLine) + "</td><td>" + esc(r.driver) + "</td><td>" + esc(r.vehicle) + "</td><td>" +
+        esc(extras) + "</td><td>" + (r.odo != null ? r.odo.toLocaleString() : "-") + "</td><td>" + res + (r.signed ? "" : ' <span class="danger">(unsigned)</span>') + "</td></tr>";
+    }).join("");
+  }
+
+  renderAll();
+</script>
+</body>
+</html>
