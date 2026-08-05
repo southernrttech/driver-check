@@ -281,8 +281,16 @@
         <input type="text" id="vehicle" autocapitalize="characters" placeholder="e.g. TRUCK 7 - XR52 KLM">
       </div>
       <div class="field">
-        <label class="label" for="trailer">Trailer (leave blank if none)</label>
+        <label class="label" for="trailer">Trailer 1 (leave blank if none)</label>
         <input type="text" id="trailer" autocapitalize="characters" placeholder="e.g. TRL 2">
+      </div>
+      <div class="field">
+        <label class="label" for="trailer2">Trailer 2 (road trains)</label>
+        <input type="text" id="trailer2" autocapitalize="characters" placeholder="Leave blank if none">
+      </div>
+      <div class="field">
+        <label class="label" for="dolly">Dolly (road trains)</label>
+        <input type="text" id="dolly" autocapitalize="characters" placeholder="Leave blank if none">
       </div>
       <div class="field">
         <label class="label" for="mileage">Odometer in km</label>
@@ -335,17 +343,17 @@
   const MAX_PHOTOS = 3;
 
   const ITEMS = [
-    { name: "Lights, indicators & reflectors", hint: "Truck and trailer - all lamps, indicators, reflectors and plates clean and working" },
-    { name: "Tyres & wheels", hint: "Truck and trailer - tread, pressure, no cuts or bulges, wheel nuts tight" },
+    { name: "Lights, indicators & reflectors", hint: "All units - lamps, indicators, reflectors and plates clean and working" },
+    { name: "Tyres & wheels", hint: "All units - tread, pressure, no cuts or bulges, wheel nuts tight" },
     { name: "Brakes", hint: "Air builds to pressure, no leaks or warnings, park brake holds" },
-    { name: "Couplings & trailer connection", hint: "Kingpin/turntable locked, pins in, air lines & electrical leads secure" },
+    { name: "Couplings & connections", hint: "Turntable/kingpin locked, dolly hitched right, pins in, air lines & electrical leads secure on every unit" },
     { name: "Load restraint", hint: "Load secured and within limits - N/A if running empty" },
     { name: "Straps, chains & tensioners", hint: "Good condition, no cuts or frays, enough for the load - N/A if none carried" },
     { name: "Curtains & buckles", hint: "Tautliners - curtains slide and tension, buckles all work, no rips - N/A if not a tautliner" },
     { name: "Mirrors & windscreen", hint: "Clean, adjusted, no cracks, wipers and washers work" },
     { name: "Oil, coolant & fuel", hint: "Levels OK, no leaks under vehicle, no warning lights" },
     { name: "Horn & reversing alarm", hint: "Both working" },
-    { name: "Bodywork & damage", hint: "Walk around truck and trailer - note any new damage" },
+    { name: "Bodywork & damage", hint: "Walk around every unit - note any new damage" },
     { name: "Doors & tailgate", hint: "Close, latch and lock properly" },
     { name: "Inside the cab", hint: "Seatbelt OK, licence, work diary & documents on board" },
   ];
@@ -366,6 +374,8 @@
   $("driver").value = store.get("driverName", "");
   $("vehicle").value = store.get("vehicleName", "");
   $("trailer").value = store.get("trailerName", "");
+  $("trailer2").value = store.get("trailer2Name", "");
+  $("dolly").value = store.get("dollyName", "");
 
   function show(id) {
     document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
@@ -393,6 +403,8 @@
     store.set("driverName", driver);
     store.set("vehicleName", vehicle);
     store.set("trailerName", $("trailer").value.trim());
+    store.set("trailer2Name", $("trailer2").value.trim());
+    store.set("dollyName", $("dolly").value.trim());
     buildChecklist();
     show("screen-check");
   });
@@ -619,7 +631,11 @@
       `Vehicle: ${vehicle}`,
     ];
     const trailer = $("trailer").value.trim();
-    if (trailer) lines.push(`Trailer: ${trailer}`);
+    const trailer2 = $("trailer2").value.trim();
+    const dolly = $("dolly").value.trim();
+    if (trailer) lines.push(`Trailer 1: ${trailer}`);
+    if (trailer2) lines.push(`Trailer 2: ${trailer2}`);
+    if (dolly) lines.push(`Dolly: ${dolly}`);
     if (mileage) lines.push(`Odometer: ${mileage} km`);
     lines.push("", issues ? `RESULT: ${issues} ISSUE${issues > 1 ? "S" : ""} FOUND` : "RESULT: ALL OK", "");
     ITEMS.forEach((item, i) => {
