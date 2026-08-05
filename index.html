@@ -93,17 +93,6 @@
   .field { margin-bottom: 14px; }
   .field:last-child { margin-bottom: 0; }
 
-  .seg { display: flex; gap: 8px; }
-  .seg button {
-    flex: 1;
-    font: inherit; font-size: 16px; font-weight: 700;
-    padding: 13px;
-    border-radius: 10px; cursor: pointer;
-    border: 1.5px solid var(--line);
-    background: transparent; color: var(--ink-soft);
-  }
-  .seg button.sel { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-
   .btn {
     display: block; width: 100%;
     font: inherit; font-size: 18px; font-weight: 700;
@@ -173,14 +162,15 @@
   .check .hint { font-size: 14px; color: var(--ink-soft); margin-top: 1px; }
   .choices { display: flex; gap: 8px; flex-shrink: 0; }
   .choice {
-    font: inherit; font-size: 16px; font-weight: 700;
-    min-width: 72px; padding: 12px 14px;
+    font: inherit; font-size: 15px; font-weight: 700;
+    min-width: 52px; padding: 12px 9px;
     border-radius: 10px; cursor: pointer;
     border: 1.5px solid var(--line);
     background: transparent; color: var(--ink-soft);
   }
   .choice.ok.sel   { background: var(--ok-soft);    border-color: var(--ok);    color: var(--ok); }
   .choice.bad.sel  { background: var(--issue-soft); border-color: var(--issue); color: var(--issue); }
+  .choice.na.sel   { background: var(--line);       border-color: var(--ink-soft); color: var(--ink); }
   .check .issue-box { display: none; margin-top: 12px; }
   .check.has-issue .issue-box { display: block; }
   .check.has-issue { border-color: var(--issue); }
@@ -220,6 +210,7 @@
   }
   .pill.ok    { background: var(--ok-soft);    color: var(--ok); }
   .pill.issue { background: var(--issue-soft); color: var(--issue); }
+  .pill.na    { background: var(--line);       color: var(--ink-soft); }
   .sum-note { font-size: 14px; color: var(--ink-soft); margin-top: 2px; }
 
   .banner {
@@ -287,17 +278,14 @@
       </div>
       <div class="field">
         <label class="label" for="vehicle">Vehicle / registration</label>
-        <input type="text" id="vehicle" autocapitalize="characters" placeholder="e.g. VAN 3 - AB12 CDE">
+        <input type="text" id="vehicle" autocapitalize="characters" placeholder="e.g. TRUCK 7 - XR52 KLM">
       </div>
       <div class="field">
-        <label class="label">Vehicle type</label>
-        <div class="seg" id="typeSeg">
-          <button type="button" data-type="van">Van / Ute</button>
-          <button type="button" data-type="truck">Truck</button>
-        </div>
+        <label class="label" for="trailer">Trailer (leave blank if none)</label>
+        <input type="text" id="trailer" autocapitalize="characters" placeholder="e.g. TRL 2">
       </div>
       <div class="field">
-        <label class="label" for="mileage">Odometer in km (optional)</label>
+        <label class="label" for="mileage">Odometer in km</label>
         <input type="text" id="mileage" inputmode="numeric" placeholder="e.g. 84200">
       </div>
     </div>
@@ -346,33 +334,21 @@
   const MANAGER_EMAIL = "murrayhawthorn2004@outlook.com";
   const MAX_PHOTOS = 3;
 
-  const CHECKLISTS = {
-    van: [
-      { name: "Lights & indicators", hint: "Headlights, brake lights, indicators all working" },
-      { name: "Tyres", hint: "Tread, pressure, no cuts or bulges" },
-      { name: "Brakes", hint: "Pedal feels normal, handbrake holds" },
-      { name: "Mirrors & windscreen", hint: "Clean, no cracks, wipers and washers work" },
-      { name: "Oil, coolant & fuel", hint: "Levels OK, no warning lights, enough fuel" },
-      { name: "Horn", hint: "Working" },
-      { name: "Bodywork & damage", hint: "Walk around - note any new dents or scrapes" },
-      { name: "Load & doors", hint: "Load secure, doors close and lock properly" },
-      { name: "Inside the cab", hint: "Seatbelt OK, cab tidy, licence & documents on board" },
-    ],
-    truck: [
-      { name: "Lights, indicators & reflectors", hint: "All lamps, indicators, reflectors and plates clean and working" },
-      { name: "Tyres & wheels", hint: "Tread, pressure, no cuts or bulges, wheel nuts tight (check indicators)" },
-      { name: "Brakes", hint: "Air builds to pressure, no leaks or warnings, park brake holds" },
-      { name: "Couplings & trailer connection", hint: "Kingpin/turntable locked, pins in, air lines & electrical leads secure" },
-      { name: "Load restraint", hint: "Straps, chains, gates and curtains secure - load within limits" },
-      { name: "Mirrors & windscreen", hint: "Clean, adjusted, no cracks, wipers and washers work" },
-      { name: "Oil, coolant & fuel", hint: "Levels OK, no leaks under vehicle, no warning lights" },
-      { name: "Horn & reversing alarm", hint: "Both working" },
-      { name: "Bodywork & damage", hint: "Walk around truck and trailer - note any new damage" },
-      { name: "Doors & tailgate", hint: "Close, latch and lock properly" },
-      { name: "Inside the cab", hint: "Seatbelt OK, licence, work diary & documents on board" },
-    ],
-  };
-  const TYPE_LABELS = { van: "Van / Ute", truck: "Truck" };
+  const ITEMS = [
+    { name: "Lights, indicators & reflectors", hint: "Truck and trailer - all lamps, indicators, reflectors and plates clean and working" },
+    { name: "Tyres & wheels", hint: "Truck and trailer - tread, pressure, no cuts or bulges, wheel nuts tight" },
+    { name: "Brakes", hint: "Air builds to pressure, no leaks or warnings, park brake holds" },
+    { name: "Couplings & trailer connection", hint: "Kingpin/turntable locked, pins in, air lines & electrical leads secure" },
+    { name: "Load restraint", hint: "Load secured and within limits - N/A if running empty" },
+    { name: "Straps, chains & tensioners", hint: "Good condition, no cuts or frays, enough for the load - N/A if none carried" },
+    { name: "Curtains & buckles", hint: "Tautliners - curtains slide and tension, buckles all work, no rips - N/A if not a tautliner" },
+    { name: "Mirrors & windscreen", hint: "Clean, adjusted, no cracks, wipers and washers work" },
+    { name: "Oil, coolant & fuel", hint: "Levels OK, no leaks under vehicle, no warning lights" },
+    { name: "Horn & reversing alarm", hint: "Both working" },
+    { name: "Bodywork & damage", hint: "Walk around truck and trailer - note any new damage" },
+    { name: "Doors & tailgate", hint: "Close, latch and lock properly" },
+    { name: "Inside the cab", hint: "Seatbelt OK, licence, work diary & documents on board" },
+  ];
 
   const $ = (id) => document.getElementById(id);
   const store = {
@@ -380,8 +356,6 @@
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
   };
 
-  let vehicleType = store.get("vehicleType", "van");
-  let ITEMS = CHECKLISTS[vehicleType];
   let answers = []; // { status: "ok" | "issue" | null, note: "", photos: [] }
 
   const todayLabel = new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
@@ -391,18 +365,7 @@
   // Remember driver + vehicle between days
   $("driver").value = store.get("driverName", "");
   $("vehicle").value = store.get("vehicleName", "");
-
-  // Vehicle type selector
-  const segBtns = [...document.querySelectorAll("#typeSeg button")];
-  function renderSeg() {
-    segBtns.forEach((b) => b.classList.toggle("sel", b.dataset.type === vehicleType));
-  }
-  segBtns.forEach((b) => b.addEventListener("click", () => {
-    vehicleType = b.dataset.type;
-    store.set("vehicleType", vehicleType);
-    renderSeg();
-  }));
-  renderSeg();
+  $("trailer").value = store.get("trailerName", "");
 
   function show(id) {
     document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
@@ -426,9 +389,10 @@
     const vehicle = $("vehicle").value.trim();
     if (!driver) { toast("Please enter your name"); $("driver").focus(); return; }
     if (!vehicle) { toast("Please enter the vehicle"); $("vehicle").focus(); return; }
+    if (!$("mileage").value.trim()) { toast("Please enter the odometer reading"); $("mileage").focus(); return; }
     store.set("driverName", driver);
     store.set("vehicleName", vehicle);
-    ITEMS = CHECKLISTS[vehicleType];
+    store.set("trailerName", $("trailer").value.trim());
     buildChecklist();
     show("screen-check");
   });
@@ -470,6 +434,7 @@
         `<div class="choices">` +
         `<button type="button" class="choice ok" aria-pressed="false">OK</button>` +
         `<button type="button" class="choice bad" aria-pressed="false">Issue</button>` +
+        `<button type="button" class="choice na" aria-pressed="false">N/A</button>` +
         `</div></div>` +
         `<div class="issue-box">` +
         `<textarea placeholder="What's wrong? (short note)"></textarea>` +
@@ -477,12 +442,13 @@
         `<input type="file" accept="image/*" capture="environment" hidden>` +
         `<div class="thumbs"></div>` +
         `</div>`;
-      const [okBtn, badBtn] = div.querySelectorAll(".choice");
+      const [okBtn, badBtn, naBtn] = div.querySelectorAll(".choice");
       const noteEl = div.querySelector("textarea");
       const photoBtn = div.querySelector(".photo-btn");
       const fileEl = div.querySelector('input[type="file"]');
-      okBtn.addEventListener("click", () => pick(i, "ok", div, okBtn, badBtn));
-      badBtn.addEventListener("click", () => { pick(i, "issue", div, okBtn, badBtn); noteEl.focus(); });
+      okBtn.addEventListener("click", () => pick(i, "ok", div, okBtn, badBtn, naBtn));
+      badBtn.addEventListener("click", () => { pick(i, "issue", div, okBtn, badBtn, naBtn); noteEl.focus(); });
+      naBtn.addEventListener("click", () => pick(i, "na", div, okBtn, badBtn, naBtn));
       noteEl.addEventListener("input", () => { answers[i].note = noteEl.value; });
       photoBtn.addEventListener("click", () => {
         if (answers[i].photos.length >= MAX_PHOTOS) { toast("Max " + MAX_PHOTOS + " photos per item"); return; }
@@ -536,12 +502,14 @@
     img.src = URL.createObjectURL(file);
   }
 
-  function pick(i, status, div, okBtn, badBtn) {
+  function pick(i, status, div, okBtn, badBtn, naBtn) {
     answers[i].status = status;
     okBtn.classList.toggle("sel", status === "ok");
     badBtn.classList.toggle("sel", status === "issue");
+    naBtn.classList.toggle("sel", status === "na");
     okBtn.setAttribute("aria-pressed", status === "ok");
     badBtn.setAttribute("aria-pressed", status === "issue");
+    naBtn.setAttribute("aria-pressed", status === "na");
     div.classList.toggle("has-issue", status === "issue");
     updateProgress();
   }
@@ -625,8 +593,10 @@
       if (a.status === "issue" && a.note.trim()) bits.push(esc(a.note.trim()));
       if (a.photos.length) bits.push(a.photos.length + " photo" + (a.photos.length > 1 ? "s" : ""));
       const note = bits.length ? `<div class="sum-note">${bits.join(" &middot; ")}</div>` : "";
+      const cls = a.status === "ok" ? "ok" : a.status === "na" ? "na" : "issue";
+      const lbl = a.status === "ok" ? "OK" : a.status === "na" ? "N/A" : "Issue";
       return `<li><div><div>${esc(item.name)}</div>${note}</div>` +
-        `<span class="pill ${a.status === "ok" ? "ok" : "issue"}">${a.status === "ok" ? "OK" : "Issue"}</span></li>`;
+        `<span class="pill ${cls}">${lbl}</span></li>`;
     }).join("");
 
     const hist = store.get("history", []);
@@ -646,13 +616,15 @@
       "DAILY VEHICLE CHECK",
       `Date: ${todayLabel}, ${timeNow()}`,
       `Driver: ${driver}`,
-      `Vehicle: ${vehicle} (${TYPE_LABELS[vehicleType]})`,
+      `Vehicle: ${vehicle}`,
     ];
+    const trailer = $("trailer").value.trim();
+    if (trailer) lines.push(`Trailer: ${trailer}`);
     if (mileage) lines.push(`Odometer: ${mileage} km`);
     lines.push("", issues ? `RESULT: ${issues} ISSUE${issues > 1 ? "S" : ""} FOUND` : "RESULT: ALL OK", "");
     ITEMS.forEach((item, i) => {
       const a = answers[i];
-      let line = `${a.status === "ok" ? "[OK]" : "[ISSUE]"} ${item.name}`;
+      let line = `${a.status === "ok" ? "[OK]" : a.status === "na" ? "[N/A]" : "[ISSUE]"} ${item.name}`;
       if (a.status === "issue" && a.note.trim()) line += ` - ${a.note.trim()}`;
       if (a.photos.length) line += ` (${a.photos.length} photo${a.photos.length > 1 ? "s" : ""})`;
       lines.push(line);
