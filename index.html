@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#C8641B">
+<title>Daily Driver Check</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Driver Check">
+</head>
+<body>
+<style>
+  :root {
+    --paper: #F4F6F7;
+    --card: #FFFFFF;
+    --ink: #1B2530;
+    --ink-soft: #5A6875;
+    --line: #DDE3E8;
+    --accent: #C8641B;        /* road-work amber-orange */
+    --accent-ink: #FFFFFF;
+    --ok: #217A4B;
+    --ok-soft: #E2F2E9;
+    --issue: #B93A32;
+    --issue-soft: #F9E7E5;
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #151B21;
+      --card: #1F2830;
+      --ink: #EDF1F4;
+      --ink-soft: #9AA8B4;
+      --line: #33404B;
+      --accent: #E08935;
+      --accent-ink: #1B1206;
+      --ok: #4CBF85;
+      --ok-soft: #1D3A2C;
+      --issue: #E4756C;
+      --issue-soft: #46231F;
+    }
+  }
+  :root[data-theme="light"] {
+    --paper: #F4F6F7; --card: #FFFFFF; --ink: #1B2530; --ink-soft: #5A6875;
+    --line: #DDE3E8; --accent: #C8641B; --accent-ink: #FFFFFF;
+    --ok: #217A4B; --ok-soft: #E2F2E9; --issue: #B93A32; --issue-soft: #F9E7E5;
+  }
+  :root[data-theme="dark"] {
+    --paper: #151B21; --card: #1F2830; --ink: #EDF1F4; --ink-soft: #9AA8B4;
+    --line: #33404B; --accent: #E08935; --accent-ink: #1B1206;
+    --ok: #4CBF85; --ok-soft: #1D3A2C; --issue: #E4756C; --issue-soft: #46231F;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 17px;
+    line-height: 1.45;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .wrap { max-width: 540px; margin: 0 auto; padding: 16px 16px 48px; }
+
+  header.app {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 12px; padding: 8px 2px 14px;
+  }
+  header.app h1 { font-size: 21px; margin: 0; letter-spacing: -0.01em; }
+  header.app .date { color: var(--ink-soft); font-size: 15px; white-space: nowrap; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+
+  .label {
+    display: block;
+    font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+  }
+  input[type="text"], textarea {
+    width: 100%;
+    font: inherit; color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 13px 14px;
+  }
+  input:focus, textarea:focus, button:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 1px;
+  }
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+
+  .btn {
+    display: block; width: 100%;
+    font: inherit; font-size: 18px; font-weight: 700;
+    padding: 16px;
+    border-radius: var(--radius);
+    border: none; cursor: pointer;
+    background: var(--accent); color: var(--accent-ink);
+  }
+  .btn.secondary {
+    background: transparent; color: var(--ink);
+    border: 1.5px solid var(--line);
+    font-weight: 600;
+  }
+  .btn + .btn { margin-top: 10px; }
+  .btn:disabled { opacity: 0.45; cursor: default; }
+  a.btn { text-decoration: none; text-align: center; }
+  .btn.call { background: var(--issue); color: #FFFFFF; }
+  .call-line {
+    display: block; text-align: center;
+    margin-top: 16px; font-size: 15px; font-weight: 600;
+    color: var(--ink-soft);
+  }
+  .call-line a { color: var(--accent); white-space: nowrap; }
+  .callbar {
+    position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 10;
+    max-width: 516px; margin: 0 auto;
+    display: block; text-align: center; text-decoration: none;
+    background: var(--issue); color: #FFFFFF;
+    font-weight: 700; font-size: 17px;
+    padding: 15px; border-radius: var(--radius);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  }
+  .callbar[hidden] { display: none; }
+  #screen-check { padding-bottom: 84px; }
+
+  /* checklist */
+  .progress {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--paper);
+    padding: 10px 2px;
+    font-size: 14px; color: var(--ink-soft);
+  }
+  .progress .bar {
+    height: 6px; border-radius: 3px;
+    background: var(--line); margin-top: 6px; overflow: hidden;
+  }
+  .progress .fill {
+    height: 100%; width: 0%;
+    background: var(--accent);
+    transition: width 0.2s ease;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .progress .fill { transition: none; }
+  }
+
+  .check {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+  }
+  .check .row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .check .name { font-weight: 600; }
+  .check .hint { font-size: 14px; color: var(--ink-soft); margin-top: 1px; }
+  .choices { display: flex; gap: 8px; flex-shrink: 0; }
+  .choice {
+    font: inherit; font-size: 16px; font-weight: 700;
+    min-width: 72px; padding: 12px 14px;
+    border-radius: 10px; cursor: pointer;
+    border: 1.5px solid var(--line);
+    background: transparent; color: var(--ink-soft);
+  }
+  .choice.ok.sel   { background: var(--ok-soft);    border-color: var(--ok);    color: var(--ok); }
+  .choice.bad.sel  { background: var(--issue-soft); border-color: var(--issue); color: var(--issue); }
+  .check textarea { margin-top: 12px; display: none; min-height: 64px; }
+  .check.has-issue textarea { display: block; }
+  .check.has-issue { border-color: var(--issue); }
+
+  /* summary */
+  .sum-list { margin: 0; padding: 0; list-style: none; }
+  .sum-list li {
+    display: flex; justify-content: space-between; gap: 12px;
+    padding: 10px 0; border-bottom: 1px solid var(--line);
+  }
+  .sum-list li:last-child { border-bottom: none; }
+  .pill {
+    font-size: 13px; font-weight: 700; white-space: nowrap;
+    padding: 3px 10px; border-radius: 99px;
+  }
+  .pill.ok    { background: var(--ok-soft);    color: var(--ok); }
+  .pill.issue { background: var(--issue-soft); color: var(--issue); }
+  .sum-note { font-size: 14px; color: var(--ink-soft); margin-top: 2px; }
+
+  .banner {
+    border-radius: var(--radius);
+    padding: 14px 16px; margin-bottom: 14px;
+    font-weight: 600;
+  }
+  .banner.ok    { background: var(--ok-soft);    color: var(--ok); }
+  .banner.issue { background: var(--issue-soft); color: var(--issue); }
+
+  .history h2 { font-size: 15px; color: var(--ink-soft); margin: 22px 0 8px; }
+  .history .item {
+    display: flex; justify-content: space-between; gap: 12px;
+    padding: 10px 2px; border-bottom: 1px solid var(--line);
+    font-size: 15px; color: var(--ink-soft);
+    cursor: pointer;
+  }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+    background: var(--ink); color: var(--paper);
+    padding: 10px 18px; border-radius: 99px;
+    font-size: 15px; font-weight: 600;
+    opacity: 0; pointer-events: none; transition: opacity 0.25s;
+  }
+  .toast.show { opacity: 1; }
+</style>
+
+<div class="wrap">
+  <header class="app">
+    <h1>Daily Driver Check</h1>
+    <span class="date" id="today"></span>
+  </header>
+
+  <!-- Screen 1: who's driving -->
+  <section class="screen active" id="screen-start">
+    <div class="card">
+      <div class="field">
+        <label class="label" for="driver">Your name</label>
+        <input type="text" id="driver" autocomplete="name" placeholder="e.g. Sam">
+      </div>
+      <div class="field">
+        <label class="label" for="vehicle">Vehicle / registration</label>
+        <input type="text" id="vehicle" autocapitalize="characters" placeholder="e.g. VAN 3 - AB12 CDE">
+      </div>
+      <div class="field">
+        <label class="label" for="mileage">Odometer in km (optional)</label>
+        <input type="text" id="mileage" inputmode="numeric" placeholder="e.g. 84200">
+      </div>
+    </div>
+    <button class="btn" id="startBtn">Start today's check</button>
+    <p class="call-line">Urgent problem with a vehicle? <a href="tel:0460368001">Call the manager - 0460 368 001</a></p>
+    <div class="history" id="history"></div>
+  </section>
+
+  <!-- Screen 2: the checklist -->
+  <section class="screen" id="screen-check">
+    <div class="progress">
+      <span id="progressText">0 of 0 checked</span>
+      <div class="bar"><div class="fill" id="progressFill"></div></div>
+    </div>
+    <div id="checklist"></div>
+    <button class="btn" id="finishBtn" disabled>Finish check</button>
+    <button class="btn secondary" id="backBtn">Back</button>
+  </section>
+
+  <!-- Screen 3: summary + send -->
+  <section class="screen" id="screen-done">
+    <div class="banner" id="resultBanner"></div>
+    <div class="card">
+      <ul class="sum-list" id="summaryList"></ul>
+    </div>
+    <a class="btn call" id="callBtn" href="tel:0460368001" hidden>Call the manager now - 0460 368 001</a>
+    <button class="btn" id="emailBtn">Email report to management</button>
+    <button class="btn secondary" id="newBtn">Done - back to start</button>
+  </section>
+</div>
+
+<a class="callbar" id="callBar" href="tel:0460368001" hidden>Issue found? Call the manager - 0460 368 001</a>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const MANAGER_EMAIL = "murrayhawthorn2004@outlook.com";
+
+  const ITEMS = [
+    { name: "Lights & indicators", hint: "Headlights, brake lights, indicators all working" },
+    { name: "Tyres", hint: "Tread, pressure, no cuts or bulges" },
+    { name: "Brakes", hint: "Pedal feels normal, handbrake holds" },
+    { name: "Mirrors & windscreen", hint: "Clean, no cracks, wipers and washers work" },
+    { name: "Oil, coolant & fuel", hint: "Levels OK, no warning lights, enough fuel" },
+    { name: "Horn", hint: "Working" },
+    { name: "Bodywork & damage", hint: "Walk around - note any new dents or scrapes" },
+    { name: "Load & doors", hint: "Load secure, doors close and lock properly" },
+    { name: "Inside the cab", hint: "Seatbelt OK, cab tidy, licence & documents on board" },
+  ];
+
+  const $ = (id) => document.getElementById(id);
+  const store = {
+    get(k, fallback) { try { return JSON.parse(localStorage.getItem(k)) ?? fallback; } catch { return fallback; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  };
+
+  let answers = []; // { status: "ok" | "issue" | null, note: "" }
+
+  const todayLabel = new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
+  $("today").textContent = todayLabel;
+
+  // Remember driver + vehicle between days
+  $("driver").value = store.get("driverName", "");
+  $("vehicle").value = store.get("vehicleName", "");
+
+  function show(id) {
+    document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
+    $(id).classList.add("active");
+    if (id !== "screen-check") $("callBar").hidden = true;
+    window.scrollTo(0, 0);
+  }
+
+  function toast(msg) {
+    const t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove("show"), 2200);
+  }
+
+  // ---------- start screen ----------
+  $("startBtn").addEventListener("click", () => {
+    const driver = $("driver").value.trim();
+    const vehicle = $("vehicle").value.trim();
+    if (!driver) { toast("Please enter your name"); $("driver").focus(); return; }
+    if (!vehicle) { toast("Please enter the vehicle"); $("vehicle").focus(); return; }
+    store.set("driverName", driver);
+    store.set("vehicleName", vehicle);
+    buildChecklist();
+    show("screen-check");
+  });
+
+  function renderHistory() {
+    const hist = store.get("history", []);
+    const box = $("history");
+    box.innerHTML = "";
+    if (!hist.length) return;
+    const h2 = document.createElement("h2");
+    h2.textContent = "Recent checks on this phone (tap one to copy its report)";
+    box.appendChild(h2);
+    hist.slice(0, 7).forEach((h) => {
+      const div = document.createElement("div");
+      div.className = "item";
+      div.innerHTML =
+        `<span>${esc(h.date)} - ${esc(h.vehicle)}</span>` +
+        `<span class="pill ${h.issues ? "issue" : "ok"}">${h.issues ? h.issues + " issue" + (h.issues > 1 ? "s" : "") : "All OK"}</span>`;
+      if (h.report) div.addEventListener("click", () => copyText(h.report));
+      box.appendChild(div);
+    });
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+  renderHistory();
+
+  // ---------- checklist screen ----------
+  function buildChecklist() {
+    answers = ITEMS.map(() => ({ status: null, note: "" }));
+    const box = $("checklist");
+    box.innerHTML = "";
+    ITEMS.forEach((item, i) => {
+      const div = document.createElement("div");
+      div.className = "check";
+      div.innerHTML =
+        `<div class="row"><div><div class="name">${esc(item.name)}</div>` +
+        `<div class="hint">${esc(item.hint)}</div></div>` +
+        `<div class="choices">` +
+        `<button type="button" class="choice ok" aria-pressed="false">OK</button>` +
+        `<button type="button" class="choice bad" aria-pressed="false">Issue</button>` +
+        `</div></div>` +
+        `<textarea placeholder="What's wrong? (short note)"></textarea>`;
+      const [okBtn, badBtn] = div.querySelectorAll(".choice");
+      const noteEl = div.querySelector("textarea");
+      okBtn.addEventListener("click", () => pick(i, "ok", div, okBtn, badBtn));
+      badBtn.addEventListener("click", () => { pick(i, "issue", div, okBtn, badBtn); noteEl.focus(); });
+      noteEl.addEventListener("input", () => { answers[i].note = noteEl.value; });
+      box.appendChild(div);
+    });
+    updateProgress();
+  }
+
+  function pick(i, status, div, okBtn, badBtn) {
+    answers[i].status = status;
+    okBtn.classList.toggle("sel", status === "ok");
+    badBtn.classList.toggle("sel", status === "issue");
+    okBtn.setAttribute("aria-pressed", status === "ok");
+    badBtn.setAttribute("aria-pressed", status === "issue");
+    div.classList.toggle("has-issue", status === "issue");
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const done = answers.filter((a) => a.status).length;
+    $("progressText").textContent = `${done} of ${ITEMS.length} checked`;
+    $("progressFill").style.width = (done / ITEMS.length) * 100 + "%";
+    $("finishBtn").disabled = done < ITEMS.length;
+    $("callBar").hidden = !answers.some((a) => a.status === "issue");
+  }
+
+  $("backBtn").addEventListener("click", () => show("screen-start"));
+
+  // ---------- summary screen ----------
+  $("finishBtn").addEventListener("click", () => {
+    const issues = answers.filter((a) => a.status === "issue").length;
+    const banner = $("resultBanner");
+    banner.className = "banner " + (issues ? "issue" : "ok");
+    banner.textContent = issues
+      ? `${issues} issue${issues > 1 ? "s" : ""} found - email the report, and call if it can't wait`
+      : "All checks passed - report saved, you're good to go";
+    $("callBtn").hidden = !issues;
+    $("emailBtn").hidden = !issues;
+
+    $("summaryList").innerHTML = ITEMS.map((item, i) => {
+      const a = answers[i];
+      const note = a.status === "issue" && a.note.trim()
+        ? `<div class="sum-note">${esc(a.note.trim())}</div>` : "";
+      return `<li><div><div>${esc(item.name)}</div>${note}</div>` +
+        `<span class="pill ${a.status === "ok" ? "ok" : "issue"}">${a.status === "ok" ? "OK" : "Issue"}</span></li>`;
+    }).join("");
+
+    const hist = store.get("history", []);
+    hist.unshift({ date: todayLabel, vehicle: $("vehicle").value.trim(), issues, report: reportText() });
+    store.set("history", hist.slice(0, 30));
+    renderHistory();
+    show("screen-done");
+  });
+
+  function reportText() {
+    const driver = $("driver").value.trim();
+    const vehicle = $("vehicle").value.trim();
+    const mileage = $("mileage").value.trim();
+    const issues = answers.filter((a) => a.status === "issue").length;
+    const lines = [
+      "DAILY VEHICLE CHECK",
+      `Date: ${todayLabel}`,
+      `Driver: ${driver}`,
+      `Vehicle: ${vehicle}`,
+    ];
+    if (mileage) lines.push(`Odometer: ${mileage} km`);
+    lines.push("", issues ? `RESULT: ${issues} ISSUE${issues > 1 ? "S" : ""} FOUND` : "RESULT: ALL OK", "");
+    ITEMS.forEach((item, i) => {
+      const a = answers[i];
+      let line = `${a.status === "ok" ? "[OK]" : "[ISSUE]"} ${item.name}`;
+      if (a.status === "issue" && a.note.trim()) line += ` - ${a.note.trim()}`;
+      lines.push(line);
+    });
+    return lines.join("\n");
+  }
+
+  $("emailBtn").addEventListener("click", () => {
+    const vehicle = $("vehicle").value.trim();
+    const issues = answers.filter((a) => a.status === "issue").length;
+    const subject = `Daily check - ${vehicle} - ${todayLabel}${issues ? ` - ${issues} ISSUE${issues > 1 ? "S" : ""}` : " - all OK"}`;
+    window.location.href = `mailto:${MANAGER_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(reportText())}`;
+  });
+
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast("Report copied - paste it anywhere");
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      toast("Report copied - paste it anywhere");
+    }
+  }
+
+  $("newBtn").addEventListener("click", () => {
+    $("mileage").value = "";
+    show("screen-start");
+  });
+</script>
+</body>
+</html>
