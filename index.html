@@ -42,16 +42,6 @@
       --issue-soft: #46231F;
     }
   }
-  :root[data-theme="light"] {
-    --paper: #F4F6F7; --card: #FFFFFF; --ink: #1B2530; --ink-soft: #5A6875;
-    --line: #DDE3E8; --accent: #C8641B; --accent-ink: #FFFFFF;
-    --ok: #217A4B; --ok-soft: #E2F2E9; --issue: #B93A32; --issue-soft: #F9E7E5;
-  }
-  :root[data-theme="dark"] {
-    --paper: #151B21; --card: #1F2830; --ink: #EDF1F4; --ink-soft: #9AA8B4;
-    --line: #33404B; --accent: #E08935; --accent-ink: #1B1206;
-    --ok: #4CBF85; --ok-soft: #1D3A2C; --issue: #E4756C; --issue-soft: #46231F;
-  }
 
   * { box-sizing: border-box; }
   html, body { margin: 0; }
@@ -102,6 +92,17 @@
   }
   .field { margin-bottom: 14px; }
   .field:last-child { margin-bottom: 0; }
+
+  .seg { display: flex; gap: 8px; }
+  .seg button {
+    flex: 1;
+    font: inherit; font-size: 16px; font-weight: 700;
+    padding: 13px;
+    border-radius: 10px; cursor: pointer;
+    border: 1.5px solid var(--line);
+    background: transparent; color: var(--ink-soft);
+  }
+  .seg button.sel { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 
   .btn {
     display: block; width: 100%;
@@ -180,9 +181,31 @@
   }
   .choice.ok.sel   { background: var(--ok-soft);    border-color: var(--ok);    color: var(--ok); }
   .choice.bad.sel  { background: var(--issue-soft); border-color: var(--issue); color: var(--issue); }
-  .check textarea { margin-top: 12px; display: none; min-height: 64px; }
-  .check.has-issue textarea { display: block; }
+  .check .issue-box { display: none; margin-top: 12px; }
+  .check.has-issue .issue-box { display: block; }
   .check.has-issue { border-color: var(--issue); }
+  .check textarea { min-height: 64px; }
+
+  .photo-btn {
+    font: inherit; font-size: 15px; font-weight: 600;
+    margin-top: 10px; padding: 10px 14px;
+    border-radius: 10px; cursor: pointer;
+    border: 1.5px solid var(--line);
+    background: transparent; color: var(--ink);
+  }
+  .thumbs { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .thumb { position: relative; }
+  .thumb img {
+    width: 72px; height: 72px; object-fit: cover;
+    border-radius: 8px; border: 1px solid var(--line); display: block;
+  }
+  .thumb button {
+    position: absolute; top: -8px; right: -8px;
+    width: 24px; height: 24px; border-radius: 12px;
+    border: none; cursor: pointer;
+    background: var(--issue); color: #fff;
+    font-size: 14px; line-height: 1; font-weight: 700;
+  }
 
   /* summary */
   .sum-list { margin: 0; padding: 0; list-style: none; }
@@ -207,6 +230,26 @@
   .banner.ok    { background: var(--ok-soft);    color: var(--ok); }
   .banner.issue { background: var(--issue-soft); color: var(--issue); }
 
+  .sig-card h2 {
+    font-size: 12px; font-weight: 700; margin: 0 0 8px;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--ink-soft);
+  }
+  #sigPad {
+    width: 100%; height: 120px;
+    background: var(--paper);
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+    touch-action: none; display: block;
+  }
+  .sig-row { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+  .sig-row span { font-size: 14px; color: var(--ink-soft); }
+  .sig-row button {
+    font: inherit; font-size: 14px; font-weight: 600;
+    border: none; background: none; cursor: pointer;
+    color: var(--accent);
+  }
+
   .history h2 { font-size: 15px; color: var(--ink-soft); margin: 22px 0 8px; }
   .history .item {
     display: flex; justify-content: space-between; gap: 12px;
@@ -224,6 +267,7 @@
     padding: 10px 18px; border-radius: 99px;
     font-size: 15px; font-weight: 600;
     opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    white-space: nowrap;
   }
   .toast.show { opacity: 1; }
 </style>
@@ -246,6 +290,13 @@
         <input type="text" id="vehicle" autocapitalize="characters" placeholder="e.g. VAN 3 - AB12 CDE">
       </div>
       <div class="field">
+        <label class="label">Vehicle type</label>
+        <div class="seg" id="typeSeg">
+          <button type="button" data-type="van">Van / Ute</button>
+          <button type="button" data-type="truck">Truck</button>
+        </div>
+      </div>
+      <div class="field">
         <label class="label" for="mileage">Odometer in km (optional)</label>
         <input type="text" id="mileage" inputmode="numeric" placeholder="e.g. 84200">
       </div>
@@ -266,14 +317,23 @@
     <button class="btn secondary" id="backBtn">Back</button>
   </section>
 
-  <!-- Screen 3: summary + send -->
+  <!-- Screen 3: summary + sign + send -->
   <section class="screen" id="screen-done">
     <div class="banner" id="resultBanner"></div>
     <div class="card">
       <ul class="sum-list" id="summaryList"></ul>
     </div>
+    <div class="card sig-card">
+      <h2>Sign to confirm this check</h2>
+      <canvas id="sigPad"></canvas>
+      <div class="sig-row">
+        <span id="sigStatus">Sign with your finger</span>
+        <button type="button" id="sigClear">Clear</button>
+      </div>
+    </div>
     <a class="btn call" id="callBtn" href="tel:0460368001" hidden>Call the manager now - 0460 368 001</a>
-    <button class="btn" id="emailBtn">Email report to management</button>
+    <button class="btn" id="shareBtn" hidden>Send report + photos</button>
+    <button class="btn secondary" id="emailBtn" hidden>Email report (text only)</button>
     <button class="btn secondary" id="newBtn">Done - back to start</button>
   </section>
 </div>
@@ -284,18 +344,35 @@
 
 <script>
   const MANAGER_EMAIL = "murrayhawthorn2004@outlook.com";
+  const MAX_PHOTOS = 3;
 
-  const ITEMS = [
-    { name: "Lights & indicators", hint: "Headlights, brake lights, indicators all working" },
-    { name: "Tyres", hint: "Tread, pressure, no cuts or bulges" },
-    { name: "Brakes", hint: "Pedal feels normal, handbrake holds" },
-    { name: "Mirrors & windscreen", hint: "Clean, no cracks, wipers and washers work" },
-    { name: "Oil, coolant & fuel", hint: "Levels OK, no warning lights, enough fuel" },
-    { name: "Horn", hint: "Working" },
-    { name: "Bodywork & damage", hint: "Walk around - note any new dents or scrapes" },
-    { name: "Load & doors", hint: "Load secure, doors close and lock properly" },
-    { name: "Inside the cab", hint: "Seatbelt OK, cab tidy, licence & documents on board" },
-  ];
+  const CHECKLISTS = {
+    van: [
+      { name: "Lights & indicators", hint: "Headlights, brake lights, indicators all working" },
+      { name: "Tyres", hint: "Tread, pressure, no cuts or bulges" },
+      { name: "Brakes", hint: "Pedal feels normal, handbrake holds" },
+      { name: "Mirrors & windscreen", hint: "Clean, no cracks, wipers and washers work" },
+      { name: "Oil, coolant & fuel", hint: "Levels OK, no warning lights, enough fuel" },
+      { name: "Horn", hint: "Working" },
+      { name: "Bodywork & damage", hint: "Walk around - note any new dents or scrapes" },
+      { name: "Load & doors", hint: "Load secure, doors close and lock properly" },
+      { name: "Inside the cab", hint: "Seatbelt OK, cab tidy, licence & documents on board" },
+    ],
+    truck: [
+      { name: "Lights, indicators & reflectors", hint: "All lamps, indicators, reflectors and plates clean and working" },
+      { name: "Tyres & wheels", hint: "Tread, pressure, no cuts or bulges, wheel nuts tight (check indicators)" },
+      { name: "Brakes", hint: "Air builds to pressure, no leaks or warnings, park brake holds" },
+      { name: "Couplings & trailer connection", hint: "Kingpin/turntable locked, pins in, air lines & electrical leads secure" },
+      { name: "Load restraint", hint: "Straps, chains, gates and curtains secure - load within limits" },
+      { name: "Mirrors & windscreen", hint: "Clean, adjusted, no cracks, wipers and washers work" },
+      { name: "Oil, coolant & fuel", hint: "Levels OK, no leaks under vehicle, no warning lights" },
+      { name: "Horn & reversing alarm", hint: "Both working" },
+      { name: "Bodywork & damage", hint: "Walk around truck and trailer - note any new damage" },
+      { name: "Doors & tailgate", hint: "Close, latch and lock properly" },
+      { name: "Inside the cab", hint: "Seatbelt OK, licence, work diary & documents on board" },
+    ],
+  };
+  const TYPE_LABELS = { van: "Van / Ute", truck: "Truck" };
 
   const $ = (id) => document.getElementById(id);
   const store = {
@@ -303,19 +380,35 @@
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
   };
 
-  let answers = []; // { status: "ok" | "issue" | null, note: "" }
+  let vehicleType = store.get("vehicleType", "van");
+  let ITEMS = CHECKLISTS[vehicleType];
+  let answers = []; // { status: "ok" | "issue" | null, note: "", photos: [] }
 
   const todayLabel = new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
+  const timeNow = () => new Date().toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
   $("today").textContent = todayLabel;
 
   // Remember driver + vehicle between days
   $("driver").value = store.get("driverName", "");
   $("vehicle").value = store.get("vehicleName", "");
 
+  // Vehicle type selector
+  const segBtns = [...document.querySelectorAll("#typeSeg button")];
+  function renderSeg() {
+    segBtns.forEach((b) => b.classList.toggle("sel", b.dataset.type === vehicleType));
+  }
+  segBtns.forEach((b) => b.addEventListener("click", () => {
+    vehicleType = b.dataset.type;
+    store.set("vehicleType", vehicleType);
+    renderSeg();
+  }));
+  renderSeg();
+
   function show(id) {
     document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
     $(id).classList.add("active");
     if (id !== "screen-check") $("callBar").hidden = true;
+    if (id === "screen-done") setupSignature();
     window.scrollTo(0, 0);
   }
 
@@ -335,6 +428,7 @@
     if (!vehicle) { toast("Please enter the vehicle"); $("vehicle").focus(); return; }
     store.set("driverName", driver);
     store.set("vehicleName", vehicle);
+    ITEMS = CHECKLISTS[vehicleType];
     buildChecklist();
     show("screen-check");
   });
@@ -364,7 +458,7 @@
 
   // ---------- checklist screen ----------
   function buildChecklist() {
-    answers = ITEMS.map(() => ({ status: null, note: "" }));
+    answers = ITEMS.map(() => ({ status: null, note: "", photos: [] }));
     const box = $("checklist");
     box.innerHTML = "";
     ITEMS.forEach((item, i) => {
@@ -377,15 +471,69 @@
         `<button type="button" class="choice ok" aria-pressed="false">OK</button>` +
         `<button type="button" class="choice bad" aria-pressed="false">Issue</button>` +
         `</div></div>` +
-        `<textarea placeholder="What's wrong? (short note)"></textarea>`;
+        `<div class="issue-box">` +
+        `<textarea placeholder="What's wrong? (short note)"></textarea>` +
+        `<button type="button" class="photo-btn">&#128247; Add photo of the problem</button>` +
+        `<input type="file" accept="image/*" capture="environment" hidden>` +
+        `<div class="thumbs"></div>` +
+        `</div>`;
       const [okBtn, badBtn] = div.querySelectorAll(".choice");
       const noteEl = div.querySelector("textarea");
+      const photoBtn = div.querySelector(".photo-btn");
+      const fileEl = div.querySelector('input[type="file"]');
       okBtn.addEventListener("click", () => pick(i, "ok", div, okBtn, badBtn));
       badBtn.addEventListener("click", () => { pick(i, "issue", div, okBtn, badBtn); noteEl.focus(); });
       noteEl.addEventListener("input", () => { answers[i].note = noteEl.value; });
+      photoBtn.addEventListener("click", () => {
+        if (answers[i].photos.length >= MAX_PHOTOS) { toast("Max " + MAX_PHOTOS + " photos per item"); return; }
+        fileEl.click();
+      });
+      fileEl.addEventListener("change", () => {
+        const file = fileEl.files && fileEl.files[0];
+        fileEl.value = "";
+        if (!file) return;
+        compressImage(file, (dataUrl) => {
+          answers[i].photos.push(dataUrl);
+          renderThumbs(i, div);
+        });
+      });
       box.appendChild(div);
     });
     updateProgress();
+  }
+
+  function renderThumbs(i, div) {
+    const box = div.querySelector(".thumbs");
+    box.innerHTML = "";
+    answers[i].photos.forEach((p, pi) => {
+      const t = document.createElement("div");
+      t.className = "thumb";
+      const img = document.createElement("img");
+      img.src = p;
+      img.alt = "Defect photo " + (pi + 1);
+      const x = document.createElement("button");
+      x.type = "button";
+      x.textContent = "Ã";
+      x.setAttribute("aria-label", "Remove photo");
+      x.addEventListener("click", () => { answers[i].photos.splice(pi, 1); renderThumbs(i, div); });
+      t.appendChild(img); t.appendChild(x);
+      box.appendChild(t);
+    });
+  }
+
+  function compressImage(file, cb) {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, 1024 / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * scale);
+      c.height = Math.round(img.height * scale);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(img.src);
+      cb(c.toDataURL("image/jpeg", 0.6));
+    };
+    img.onerror = () => { toast("Couldn't read that photo"); };
+    img.src = URL.createObjectURL(file);
   }
 
   function pick(i, status, div, okBtn, badBtn) {
@@ -408,21 +556,75 @@
 
   $("backBtn").addEventListener("click", () => show("screen-start"));
 
+  // ---------- signature pad ----------
+  let signed = false;
+  let sigCtx = null;
+  let drawing = false;
+
+  function setupSignature() {
+    const pad = $("sigPad");
+    const dpr = window.devicePixelRatio || 1;
+    const w = pad.clientWidth, h = pad.clientHeight;
+    if (w && pad.width !== Math.round(w * dpr)) {
+      pad.width = Math.round(w * dpr); pad.height = Math.round(h * dpr);
+      sigCtx = pad.getContext("2d");
+      sigCtx.scale(dpr, dpr);
+      sigCtx.lineWidth = 2.5;
+      sigCtx.lineCap = "round";
+      sigCtx.lineJoin = "round";
+      sigCtx.strokeStyle = getComputedStyle(document.body).color;
+    }
+    clearSignature();
+  }
+
+  function clearSignature() {
+    const pad = $("sigPad");
+    if (sigCtx) sigCtx.clearRect(0, 0, pad.width, pad.height);
+    signed = false;
+    $("sigStatus").textContent = "Sign with your finger";
+  }
+
+  const sigPadEl = $("sigPad");
+  sigPadEl.addEventListener("pointerdown", (e) => {
+    if (!sigCtx) return;
+    drawing = true;
+    try { sigPadEl.setPointerCapture(e.pointerId); } catch {}
+    const r = sigPadEl.getBoundingClientRect();
+    sigCtx.beginPath();
+    sigCtx.moveTo(e.clientX - r.left, e.clientY - r.top);
+    e.preventDefault();
+  });
+  sigPadEl.addEventListener("pointermove", (e) => {
+    if (!drawing || !sigCtx) return;
+    const r = sigPadEl.getBoundingClientRect();
+    sigCtx.lineTo(e.clientX - r.left, e.clientY - r.top);
+    sigCtx.stroke();
+    if (!signed) { signed = true; $("sigStatus").textContent = "Signed at " + timeNow(); }
+    e.preventDefault();
+  });
+  sigPadEl.addEventListener("pointerup", () => { drawing = false; });
+  sigPadEl.addEventListener("pointercancel", () => { drawing = false; });
+  $("sigClear").addEventListener("click", clearSignature);
+
   // ---------- summary screen ----------
   $("finishBtn").addEventListener("click", () => {
     const issues = answers.filter((a) => a.status === "issue").length;
+    const photoCount = answers.reduce((n, a) => n + a.photos.length, 0);
     const banner = $("resultBanner");
     banner.className = "banner " + (issues ? "issue" : "ok");
     banner.textContent = issues
-      ? `${issues} issue${issues > 1 ? "s" : ""} found - email the report, and call if it can't wait`
-      : "All checks passed - report saved, you're good to go";
+      ? `${issues} issue${issues > 1 ? "s" : ""} found - sign, send the report, and call if it can't wait`
+      : "All checks passed - sign below and you're good to go";
     $("callBtn").hidden = !issues;
+    $("shareBtn").hidden = !issues || photoCount === 0;
     $("emailBtn").hidden = !issues;
 
     $("summaryList").innerHTML = ITEMS.map((item, i) => {
       const a = answers[i];
-      const note = a.status === "issue" && a.note.trim()
-        ? `<div class="sum-note">${esc(a.note.trim())}</div>` : "";
+      const bits = [];
+      if (a.status === "issue" && a.note.trim()) bits.push(esc(a.note.trim()));
+      if (a.photos.length) bits.push(a.photos.length + " photo" + (a.photos.length > 1 ? "s" : ""));
+      const note = bits.length ? `<div class="sum-note">${bits.join(" &middot; ")}</div>` : "";
       return `<li><div><div>${esc(item.name)}</div>${note}</div>` +
         `<span class="pill ${a.status === "ok" ? "ok" : "issue"}">${a.status === "ok" ? "OK" : "Issue"}</span></li>`;
     }).join("");
@@ -439,11 +641,12 @@
     const vehicle = $("vehicle").value.trim();
     const mileage = $("mileage").value.trim();
     const issues = answers.filter((a) => a.status === "issue").length;
+    const photoCount = answers.reduce((n, a) => n + a.photos.length, 0);
     const lines = [
       "DAILY VEHICLE CHECK",
-      `Date: ${todayLabel}`,
+      `Date: ${todayLabel}, ${timeNow()}`,
       `Driver: ${driver}`,
-      `Vehicle: ${vehicle}`,
+      `Vehicle: ${vehicle} (${TYPE_LABELS[vehicleType]})`,
     ];
     if (mileage) lines.push(`Odometer: ${mileage} km`);
     lines.push("", issues ? `RESULT: ${issues} ISSUE${issues > 1 ? "S" : ""} FOUND` : "RESULT: ALL OK", "");
@@ -451,10 +654,48 @@
       const a = answers[i];
       let line = `${a.status === "ok" ? "[OK]" : "[ISSUE]"} ${item.name}`;
       if (a.status === "issue" && a.note.trim()) line += ` - ${a.note.trim()}`;
+      if (a.photos.length) line += ` (${a.photos.length} photo${a.photos.length > 1 ? "s" : ""})`;
       lines.push(line);
     });
+    if (photoCount) lines.push("", `${photoCount} defect photo${photoCount > 1 ? "s" : ""} attached`);
+    lines.push("", signed ? `Signed on screen by ${driver} at ${timeNow()}` : "Not signed on screen");
     return lines.join("\n");
   }
+
+  function dataURLtoFile(dataUrl, name) {
+    const [meta, b64] = dataUrl.split(",");
+    const mime = (meta.match(/:(.*?);/) || [0, "image/jpeg"])[1];
+    const bin = atob(b64);
+    const u8 = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    return new File([u8], name, { type: mime });
+  }
+
+  $("shareBtn").addEventListener("click", async () => {
+    const text = reportText();
+    const files = [];
+    ITEMS.forEach((item, i) => {
+      answers[i].photos.forEach((p, pi) => {
+        const safe = item.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+        files.push(dataURLtoFile(p, `defect-${safe}-${pi + 1}.jpg`));
+      });
+    });
+    if (signed) {
+      try { files.push(dataURLtoFile($("sigPad").toDataURL("image/png"), "signature.png")); } catch {}
+    }
+    try {
+      if (files.length && navigator.canShare && navigator.canShare({ files })) {
+        await navigator.share({ title: "Daily vehicle check", text, files });
+      } else if (navigator.share) {
+        await navigator.share({ title: "Daily vehicle check", text });
+        toast("Photos couldn't attach - email them separately");
+      } else {
+        await copyText(text);
+      }
+    } catch (e) {
+      if (!e || e.name !== "AbortError") await copyText(text);
+    }
+  });
 
   $("emailBtn").addEventListener("click", () => {
     const vehicle = $("vehicle").value.trim();
@@ -480,8 +721,14 @@
 
   $("newBtn").addEventListener("click", () => {
     $("mileage").value = "";
+    clearSignature();
     show("screen-start");
   });
+
+  // ---------- offline support ----------
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
 </script>
 </body>
 </html>
