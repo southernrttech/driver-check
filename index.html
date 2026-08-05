@@ -513,7 +513,7 @@
       img.alt = "Defect photo " + (pi + 1);
       const x = document.createElement("button");
       x.type = "button";
-      x.textContent = "Ã";
+      x.innerHTML = "&#215;";
       x.setAttribute("aria-label", "Remove photo");
       x.addEventListener("click", () => { answers[i].photos.splice(pi, 1); renderThumbs(i, div); });
       t.appendChild(img); t.appendChild(x);
