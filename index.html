@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#C8641B">
+<meta name="theme-color" content="#1B5EA8">
 <title>Daily Driver Check</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -19,7 +19,7 @@
     --ink: #1B2530;
     --ink-soft: #5A6875;
     --line: #DDE3E8;
-    --accent: #C8641B;        /* road-work amber-orange */
+    --accent: #1B5EA8;        /* southern blue */
     --accent-ink: #FFFFFF;
     --ok: #217A4B;
     --ok-soft: #E2F2E9;
@@ -34,8 +34,8 @@
       --ink: #EDF1F4;
       --ink-soft: #9AA8B4;
       --line: #33404B;
-      --accent: #E08935;
-      --accent-ink: #1B1206;
+      --accent: #5C9CE0;
+      --accent-ink: #0D1B2A;
       --ok: #4CBF85;
       --ok-soft: #1D3A2C;
       --issue: #E4756C;
@@ -185,6 +185,16 @@
     border: 1.5px solid var(--accent); border-radius: 10px;
     color: var(--accent); font-size: 14px; font-weight: 600;
   }
+  .install-card { border-color: var(--accent); }
+  .install-card p { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .install-card .btn { margin-top: 12px; font-size: 16px; padding: 12px; }
+  .install-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .install-row strong { font-size: 15px; }
+  .install-row button {
+    font: inherit; font-size: 14px; font-weight: 600;
+    border: none; background: none; cursor: pointer;
+    color: var(--accent);
+  }
 
   .photo-btn {
     font: inherit; font-size: 15px; font-weight: 600;
@@ -282,6 +292,11 @@
 
   <!-- Screen 1: who's driving -->
   <section class="screen active" id="screen-start">
+    <div class="card install-card" id="installCard" hidden>
+      <div class="install-row"><strong>Make this an app on your phone</strong><button type="button" id="installDismiss">Got it</button></div>
+      <p>iPhone: tap the Share button, then "Add to Home Screen". Android: tap Install below, or use the browser menu and "Add to Home screen".</p>
+      <button class="btn" id="installBtn" hidden>Install app</button>
+    </div>
     <div class="card">
       <div class="field">
         <label class="label" for="driver">Your name</label>
@@ -292,15 +307,15 @@
         <input type="text" id="vehicle" autocapitalize="characters" placeholder="e.g. TRUCK 7 - XR52 KLM">
       </div>
       <div class="field">
-        <label class="label" for="trailer">Trailer 1 fleet number (blank if none)</label>
-        <input type="text" id="trailer" autocapitalize="characters" placeholder="e.g. 12">
+        <label class="label" for="trailer">Trailer 1 fleet number</label>
+        <input type="text" id="trailer" autocapitalize="characters" placeholder="e.g. 12 - leave blank if none">
       </div>
       <div class="field">
-        <label class="label" for="trailer2">Trailer 2 fleet number (road trains)</label>
+        <label class="label" for="trailer2">Trailer 2 fleet number</label>
         <input type="text" id="trailer2" autocapitalize="characters" placeholder="Leave blank if none">
       </div>
       <div class="field">
-        <label class="label" for="dolly">Dolly fleet number (road trains)</label>
+        <label class="label" for="dolly">Dolly fleet number</label>
         <input type="text" id="dolly" autocapitalize="characters" placeholder="Leave blank if none">
       </div>
       <div class="field">
@@ -743,6 +758,25 @@
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
   }
+
+  // ---------- install hint ----------
+  const standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  if (!standalone && !store.get("installHintDismissed", false)) {
+    $("installCard").hidden = false;
+  }
+  $("installDismiss").addEventListener("click", () => {
+    store.set("installHintDismissed", true);
+    $("installCard").hidden = true;
+  });
+  let deferredPrompt = null;
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (!$("installCard").hidden) $("installBtn").hidden = false;
+  });
+  $("installBtn").addEventListener("click", () => {
+    if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; $("installBtn").hidden = true; }
+  });
 </script>
 </body>
 </html>
