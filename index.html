@@ -62,6 +62,11 @@
   }
   header.app h1 { font-size: 21px; margin: 0; letter-spacing: -0.01em; }
   header.app .date { color: var(--ink-soft); font-size: 15px; white-space: nowrap; }
+  .admin-link {
+    font-size: 13px; font-weight: 600; white-space: nowrap;
+    color: var(--ink-soft); text-decoration: none;
+    border: 1px solid var(--line); padding: 4px 10px; border-radius: 99px;
+  }
 
   .card {
     background: var(--card);
@@ -175,6 +180,11 @@
   .check.has-issue .issue-box { display: block; }
   .check.has-issue { border-color: var(--issue); }
   .check textarea { min-height: 64px; }
+  .spot-note {
+    margin-top: 12px; padding: 10px 12px;
+    border: 1.5px solid var(--accent); border-radius: 10px;
+    color: var(--accent); font-size: 14px; font-weight: 600;
+  }
 
   .photo-btn {
     font: inherit; font-size: 15px; font-weight: 600;
@@ -267,6 +277,7 @@
   <header class="app">
     <h1>Daily Driver Check</h1>
     <span class="date" id="today"></span>
+    <a class="admin-link" href="admin.html">Admin</a>
   </header>
 
   <!-- Screen 1: who's driving -->
@@ -434,7 +445,7 @@
 
   // ---------- checklist screen ----------
   function buildChecklist() {
-    answers = ITEMS.map(() => ({ status: null, note: "", photos: [] }));
+    answers = ITEMS.map(() => ({ status: null, note: "", photos: [], spot: Math.random() < 0.1 }));
     const box = $("checklist");
     box.innerHTML = "";
     ITEMS.forEach((item, i) => {
@@ -450,7 +461,10 @@
         `</div></div>` +
         `<div class="issue-box">` +
         `<textarea placeholder="What's wrong? (short note)"></textarea>` +
-        `<button type="button" class="photo-btn">&#128247; Add photo of the problem</button>` +
+        `</div>` +
+        `<div class="spot-note" hidden>&#128247; Spot check - take a photo of this item to finish</div>` +
+        `<div class="photo-box" hidden>` +
+        `<button type="button" class="photo-btn">&#128247; Add photo</button>` +
         `<input type="file" accept="image/*" capture="environment" hidden>` +
         `<div class="thumbs"></div>` +
         `</div>`;
@@ -458,9 +472,9 @@
       const noteEl = div.querySelector("textarea");
       const photoBtn = div.querySelector(".photo-btn");
       const fileEl = div.querySelector('input[type="file"]');
-      okBtn.addEventListener("click", () => pick(i, "ok", div, okBtn, badBtn, naBtn));
-      badBtn.addEventListener("click", () => { pick(i, "issue", div, okBtn, badBtn, naBtn); noteEl.focus(); });
-      naBtn.addEventListener("click", () => pick(i, "na", div, okBtn, badBtn, naBtn));
+      okBtn.addEventListener("click", () => { pick(i, "ok", div, okBtn, badBtn, naBtn); refreshExtras(i, div); });
+      badBtn.addEventListener("click", () => { pick(i, "issue", div, okBtn, badBtn, naBtn); refreshExtras(i, div); noteEl.focus(); });
+      naBtn.addEventListener("click", () => { pick(i, "na", div, okBtn, badBtn, naBtn); refreshExtras(i, div); });
       noteEl.addEventListener("input", () => { answers[i].note = noteEl.value; });
       photoBtn.addEventListener("click", () => {
         if (answers[i].photos.length >= MAX_PHOTOS) { toast("Max " + MAX_PHOTOS + " photos per item"); return; }
@@ -473,6 +487,8 @@
         compressImage(file, (dataUrl) => {
           answers[i].photos.push(dataUrl);
           renderThumbs(i, div);
+          refreshExtras(i, div);
+          updateProgress();
         });
       });
       box.appendChild(div);
@@ -493,7 +509,7 @@
       x.type = "button";
       x.innerHTML = "&#215;";
       x.setAttribute("aria-label", "Remove photo");
-      x.addEventListener("click", () => { answers[i].photos.splice(pi, 1); renderThumbs(i, div); });
+      x.addEventListener("click", () => { answers[i].photos.splice(pi, 1); renderThumbs(i, div); refreshExtras(i, div); updateProgress(); });
       t.appendChild(img); t.appendChild(x);
       box.appendChild(t);
     });
@@ -514,6 +530,13 @@
     img.src = URL.createObjectURL(file);
   }
 
+  function refreshExtras(i, div) {
+    const a = answers[i];
+    const needSpot = a.spot && a.status === "ok" && a.photos.length === 0;
+    div.querySelector(".spot-note").hidden = !needSpot;
+    div.querySelector(".photo-box").hidden = !(a.status === "issue" || (a.spot && a.status === "ok"));
+  }
+
   function pick(i, status, div, okBtn, badBtn, naBtn) {
     answers[i].status = status;
     okBtn.classList.toggle("sel", status === "ok");
@@ -530,7 +553,8 @@
     const done = answers.filter((a) => a.status).length;
     $("progressText").textContent = `${done} of ${ITEMS.length} checked`;
     $("progressFill").style.width = (done / ITEMS.length) * 100 + "%";
-    $("finishBtn").disabled = done < ITEMS.length;
+    const spotPending = answers.some((a) => a.spot && a.status === "ok" && a.photos.length === 0);
+    $("finishBtn").disabled = done < ITEMS.length || spotPending;
     $("callBar").hidden = !answers.some((a) => a.status === "issue");
   }
 
@@ -596,7 +620,7 @@
       ? `${issues} issue${issues > 1 ? "s" : ""} found - sign, send the report, and call if it can't wait`
       : "All checks passed - sign below and you're good to go";
     $("callBtn").hidden = !issues;
-    $("shareBtn").hidden = !issues || photoCount === 0;
+    $("shareBtn").hidden = photoCount === 0;
     $("emailBtn").hidden = !issues;
 
     $("summaryList").innerHTML = ITEMS.map((item, i) => {
@@ -643,6 +667,7 @@
       let line = `${a.status === "ok" ? "[OK]" : a.status === "na" ? "[N/A]" : "[ISSUE]"} ${item.name}`;
       if (a.status === "issue" && a.note.trim()) line += ` - ${a.note.trim()}`;
       if (a.photos.length) line += ` (${a.photos.length} photo${a.photos.length > 1 ? "s" : ""})`;
+      if (a.spot && a.status === "ok") line += " [SPOT CHECK]";
       lines.push(line);
     });
     if (photoCount) lines.push("", `${photoCount} defect photo${photoCount > 1 ? "s" : ""} attached`);
