@@ -136,6 +136,17 @@
 <div class="toast" id="toast"></div>
 
 <script>
+  const ADMIN_PIN = "3680";
+  if (sessionStorage.getItem("adminOk") !== "1") {
+    const entry = prompt("Enter admin PIN");
+    if (entry === ADMIN_PIN) {
+      sessionStorage.setItem("adminOk", "1");
+    } else {
+      document.body.innerHTML = '<p style="font-family:sans-serif;padding:40px;text-align:center">Wrong PIN. <a href="./">Back to driver app</a></p>';
+      throw new Error("locked");
+    }
+  }
+
   const $ = (id) => document.getElementById(id);
   const store = {
     get(k, fb) { try { return JSON.parse(localStorage.getItem(k)) ?? fb; } catch { return fb; } },
