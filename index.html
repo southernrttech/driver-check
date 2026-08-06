@@ -445,7 +445,8 @@
 
   // ---------- checklist screen ----------
   function buildChecklist() {
-    answers = ITEMS.map(() => ({ status: null, note: "", photos: [], spot: Math.random() < 0.1 }));
+    const spotIndex = Math.floor(Math.random() * ITEMS.length);
+    answers = ITEMS.map((item, i) => ({ status: null, note: "", photos: [], spot: i === spotIndex }));
     const box = $("checklist");
     box.innerHTML = "";
     ITEMS.forEach((item, i) => {
