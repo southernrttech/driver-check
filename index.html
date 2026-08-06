@@ -292,15 +292,15 @@
         <input type="text" id="vehicle" autocapitalize="characters" placeholder="e.g. TRUCK 7 - XR52 KLM">
       </div>
       <div class="field">
-        <label class="label" for="trailer">Trailer 1 (leave blank if none)</label>
-        <input type="text" id="trailer" autocapitalize="characters" placeholder="e.g. TRL 2">
+        <label class="label" for="trailer">Trailer 1 fleet number (blank if none)</label>
+        <input type="text" id="trailer" autocapitalize="characters" placeholder="e.g. 12">
       </div>
       <div class="field">
-        <label class="label" for="trailer2">Trailer 2 (road trains)</label>
+        <label class="label" for="trailer2">Trailer 2 fleet number (road trains)</label>
         <input type="text" id="trailer2" autocapitalize="characters" placeholder="Leave blank if none">
       </div>
       <div class="field">
-        <label class="label" for="dolly">Dolly (road trains)</label>
+        <label class="label" for="dolly">Dolly fleet number (road trains)</label>
         <input type="text" id="dolly" autocapitalize="characters" placeholder="Leave blank if none">
       </div>
       <div class="field">
@@ -532,7 +532,7 @@
 
   function refreshExtras(i, div) {
     const a = answers[i];
-    const needSpot = a.spot && a.status === "ok" && a.photos.length === 0;
+    const needSpot = a.spot && (a.status === "ok" || a.status === "issue") && a.photos.length === 0;
     div.querySelector(".spot-note").hidden = !needSpot;
     div.querySelector(".photo-box").hidden = !(a.status === "issue" || (a.spot && a.status === "ok"));
   }
@@ -553,7 +553,7 @@
     const done = answers.filter((a) => a.status).length;
     $("progressText").textContent = `${done} of ${ITEMS.length} checked`;
     $("progressFill").style.width = (done / ITEMS.length) * 100 + "%";
-    const spotPending = answers.some((a) => a.spot && a.status === "ok" && a.photos.length === 0);
+    const spotPending = answers.some((a) => a.spot && (a.status === "ok" || a.status === "issue") && a.photos.length === 0);
     $("finishBtn").disabled = done < ITEMS.length || spotPending;
     $("callBar").hidden = !answers.some((a) => a.status === "issue");
   }
@@ -667,7 +667,7 @@
       let line = `${a.status === "ok" ? "[OK]" : a.status === "na" ? "[N/A]" : "[ISSUE]"} ${item.name}`;
       if (a.status === "issue" && a.note.trim()) line += ` - ${a.note.trim()}`;
       if (a.photos.length) line += ` (${a.photos.length} photo${a.photos.length > 1 ? "s" : ""})`;
-      if (a.spot && a.status === "ok") line += " [SPOT CHECK]";
+      if (a.spot && (a.status === "ok" || a.status === "issue")) line += " [SPOT CHECK]";
       lines.push(line);
     });
     if (photoCount) lines.push("", `${photoCount} defect photo${photoCount > 1 ? "s" : ""} attached`);
